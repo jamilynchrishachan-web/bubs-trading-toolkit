@@ -7,18 +7,29 @@ from datetime import datetime
 
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-GLOSSARY_PATH = "glossary.json"
+import requests
+
+JSONBIN_ID = os.environ["JSONBIN_ID"]
+JSONBIN_API_KEY = os.environ["JSONBIN_API_KEY"]
+JSONBIN_URL = f"https://api.jsonbin.io/v3/b/{JSONBIN_ID}"
 
 def load_glossary():
     try:
-        with open(GLOSSARY_PATH, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
+        response = requests.get(
+            JSONBIN_URL + "/latest",
+            headers={"X-Master-Key": JSONBIN_API_KEY}
+        )
+        response.raise_for_status()
+        return response.json()["record"]["glossary"]
+    except Exception:
         return []
 
 def save_glossary(glossary):
-    with open(GLOSSARY_PATH, "w") as f:
-        json.dump(glossary, f, indent=2)
+    requests.put(
+        JSONBIN_URL,
+        json={"glossary": glossary},
+        headers={"X-Master-Key": JSONBIN_API_KEY, "Content-Type": "application/json"}
+    )
 
 def explain_concept(term):
     response = client.messages.create(
